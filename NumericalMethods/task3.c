@@ -1,24 +1,4 @@
-/*
-You will be given multiple files containing a list of numbers. The amount and numbers themselves 
-will be random. You will create a C program which counts the number of prime numbers there are 
-within the file and output to a file the amount of prime numbers found, along with the prime 
-numbers themselves. The aim of this task is to use POSIX threads to parallelise the task to take 
-advantage of the multicore processor within your machine to speed up the task. The threads you 
-spawn within the program must compute an equal or close to an equal amount of computations to 
-make the program more efficient in relation to speed. For this section, as you will only be reading 
-one file and splitting it across many threads (determined by argv[1]), you should load in the file and 
-split the file into equal parts, then process each slice within your threads. This task also tests your 
-knowledge of dynamic memory allocation. NOTE – this program should work with any amount of 
-threads. 
-
-NOTE – Your program only needs to take in one file. We have given you multiple files as they contain 
-a different amount of numbers to test your program with.
-
-Creating an algorithm to detect prime numbers (10 marks)
-Using dynamic memory – “malloc” (20 marks)
-Using multithreading with equal computations (50 marks)
-Outputting correct output to a file (20 marks)
-*/
+// Compile with cc task3.c -pthread and run with ./a.out 3
 
 #include <stdio.h>
 #include <pthread.h>
