@@ -26,6 +26,13 @@ Applying Box filter on image (20 marks)
 Using multithreading appropriately to apply Box filter (40 marks)
 Using dynamic memory – malloc (10 marks)
 Outputting the correct image with Box Blur applied (20 marks)
+
+1) take in an image
+2) convert to a 2D array (you could keep it as a 1D array, but I imagine that would be much more pain and suffering)
+3) blurring magic (which will later utilise threading)
+4) output final result
+
+Compile with "cc task4.c lodepng.c"
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +71,7 @@ int main(int argc, char** argv) {
     error = lodepng_decode32_file(&image, &width, &height, filename);
 
     if (error) {
-        printf("Error: %d\n", lodepng_error_text(error));
+        printf("Error: %s\n", lodepng_error_text(error));
         return 0;
     }
 
@@ -72,30 +79,79 @@ int main(int argc, char** argv) {
     pthread_t threads[numberOfThreads];
     int start = 0, end = 0;
 
-    for (int i = 0; i < numberOfThreads; i++) {
-        if (i == 0) {
-            start = 0
-        } else {
-            start += chunkSize;
-        }
-
-        end = start + chunkSize - 1;
-
-        if (i == numberOfThreads - 1) {
-            end = something hmm;
-        }
-
-        threadData[i].start = start;
-        threadData[i].end = end;
-        threadData[i].width = width;
-        threadData[i].height = height;
-        threadData[i].image = image;
-
-        pthread_create(threads[i], NULL, blurImage, &threadData[i]);
-        pthread_join(threads[i], NULL);
+    // Print 1D array
+    for (int i = 0; i < 64; i = i + 4) {
+        printf("%d %d %d %d\n", image[i], image[1 + i], image[2 + i], image[3 + i]);
     }
 
-    lodepng_encode32_file(newFilename, image, width, height);
+    // Convert to 2D array
+    unsigned char image2D[height][width * 4];
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width * 4; col = col + 4) {
+            image2D[row][col] = image[(row * width * 4) + col];
+            image2D[row][col + 1] = image[(row * width * 4) + col + 1];
+            image2D[row][col + 2] = image[(row * width * 4) + col + 2];
+            image2D[row][col + 3] = image[(row * width * 4) + col + 3];
+        }
+    }
+
+    // Print 2D array
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width * 4; col++) {
+            printf("%d ", image2D[row][col]);
+            if ((col + 1) % 4 == 0) {
+                printf("|");
+            }
+        }
+        printf("\n");
+    }
+
+    // Convert back to 1D array and making everything blue
+    int counter = 0;
+    int imageArea = width * height;
+    unsigned char image1D[imageArea];
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width * 4; col++) {
+            // Try to make it entierly RED
+            if (col == 0) {
+                printf("Col = %d\n", col);
+            }
+            printf("%d\n", col);
+            image2D[row][col] = 255;
+            image1D[counter] = image2D[row][col];
+            counter++;
+        }
+    }
+
+    // Print 1D array
+    for (int i = 0; i < 64; i = i + 4) {
+        printf("%d %d %d %d\n", image1D[i], image1D[1 + i], image1D[2 + i], image1D[3 + i]);
+    }
+
+    // for (int i = 0; i < numberOfThreads; i++) {
+    //     if (i == 0) {
+    //         start = 0
+    //     } else {
+    //         start += chunkSize;
+    //     }
+
+    //     end = start + chunkSize - 1;
+
+    //     if (i == numberOfThreads - 1) {
+    //         end = something hmm;
+    //     }
+
+    //     threadData[i].start = start;
+    //     threadData[i].end = end;
+    //     threadData[i].width = width;
+    //     threadData[i].height = height;
+    //     threadData[i].image = image;
+
+    //     pthread_create(threads[i], NULL, blurImage, &threadData[i]);
+    //     pthread_join(threads[i], NULL);
+    // }
+
+    lodepng_encode32_file(newFilename, image1D, width, height);
 
     free(image); // Free pointer
     return 0;
