@@ -48,6 +48,13 @@ typedef struct {
     unsigned char* image;
 } tdata;
 
+typedef struct {
+    int r;
+    int b;
+    int g;
+    int a;
+} imagePixel;
+
 void *blurImage(void* targs) {
     pthread_exit(0);
 }
@@ -77,82 +84,89 @@ int main(int argc, char** argv) {
 
     tdata threadData[numberOfThreads];
     pthread_t threads[numberOfThreads];
-    int start = 0, end = 0;
+    int start = 0, end = 0, counter = 0;
+    int nPixels = width * height;
 
-    // Print 1D array
-    for (int i = 0; i < 64; i = i + 4) {
-        printf("%d %d %d %d\n", image[i], image[1 + i], image[2 + i], image[3 + i]);
+    // Convert to 1D array
+    printf("1D Array\n");
+    imagePixel image1D[nPixels];
+    for (int i = 0; i < nPixels * 4; i = i + 4) {
+        imagePixel img;
+
+        img.r = image[i];
+        img.g = image[1 + i];
+        img.b = image[2 + i];
+        img.a = image[3 + i];
+
+        image1D[counter] = img;
+
+        printf("%d %d %d %d\n", image1D[counter].r, image1D[counter].g, image1D[counter].b, image1D[counter].a);
+        counter = counter + 1;
     }
+
+    printf("Width = %d, Height = %d\n", width, height);
+    printf("Area = %d\n", nPixels);
+    printf("2D Array\n");
 
     // Convert to 2D array
-    unsigned char image2D[height][width * 4];
+    counter = 0;
+    imagePixel image2D[height][width];
     for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width * 4; col = col + 4) {
-            image2D[row][col] = image[(row * width * 4) + col];
-            image2D[row][col + 1] = image[(row * width * 4) + col + 1];
-            image2D[row][col + 2] = image[(row * width * 4) + col + 2];
-            image2D[row][col + 3] = image[(row * width * 4) + col + 3];
-        }
-    }
+        for (int col = 0; col < width; col++) {            
+            image2D[row][col] = image1D[counter];
 
-    // Print 2D array
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width * 4; col++) {
-            printf("%d ", image2D[row][col]);
-            if ((col + 1) % 4 == 0) {
-                printf("|");
-            }
-        }
-        printf("\n");
-    }
-
-    // Convert back to 1D array and making everything blue
-    int counter = 0;
-    int imageArea = width * height;
-    unsigned char image1D[imageArea];
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width * 4; col++) {
-            // Try to make it entierly RED
-            if (col == 0) {
-                printf("Col = %d\n", col);
-            }
-            printf("%d\n", col);
-            image2D[row][col] = 255;
-            image1D[counter] = image2D[row][col];
+            printf("Row: %d, Col: %d, RGBA: %d,%d,%d,%d\n", row, col, image2D[row][col].r, image2D[row][col].g, image2D[row][col].b, image2D[row][col].a);
             counter++;
         }
     }
 
-    // Print 1D array
-    for (int i = 0; i < 64; i = i + 4) {
-        printf("%d %d %d %d\n", image1D[i], image1D[1 + i], image1D[2 + i], image1D[3 + i]);
+    printf("Print blue\n");
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {            
+            image2D[row][col].r = 0;
+            image2D[row][col].g = 0;
+            image2D[row][col].b = 255;
+            image2D[row][col].a = 255;
+
+            printf("Row: %d, Col: %d, RGBA: %d,%d,%d,%d\n", row, col, image2D[row][col].r, image2D[row][col].g, image2D[row][col].b, image2D[row][col].a);
+        }
+    }
+// iterate 2d arr
+//      YYY 
+//      YXY
+//      YYY     
+// get all 8 things around it
+// add them together and divide by 8
+// that gives value for r g b
+// apart from the top and sides etc
+    // Convert back to 1D array and then back to flat array to save
+    imagePixel image1DSecondEdition[nPixels];
+    counter = 0;
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {            
+            image1DSecondEdition[counter] = image2D[row][col];
+            counter++;
+        }
     }
 
-    // for (int i = 0; i < numberOfThreads; i++) {
-    //     if (i == 0) {
-    //         start = 0
-    //     } else {
-    //         start += chunkSize;
-    //     }
+    unsigned char* newImage = malloc(nPixels * sizeof(int) * 4);
+    counter = 0;
+    for (int i = 0; i < nPixels * 4; i = i + 4) {
+        newImage[i] = image1DSecondEdition[counter].r;
+        newImage[i + 1] = image1DSecondEdition[counter].g;
+        newImage[i + 2] = image1DSecondEdition[counter].b;
+        newImage[i + 3] = image1DSecondEdition[counter].a;
+        counter++;
+    }
 
-    //     end = start + chunkSize - 1;
+    printf("Print new 1D array\n");
+    for (int i = 0; i < nPixels * 4; i = i + 4) {
+        printf("%d, %d, %d, %d\n", newImage[i], newImage[i + 1], newImage[i + 2], newImage[i + 3]);
+    }
 
-    //     if (i == numberOfThreads - 1) {
-    //         end = something hmm;
-    //     }
+    lodepng_encode32_file(newFilename, newImage, width, height);
 
-    //     threadData[i].start = start;
-    //     threadData[i].end = end;
-    //     threadData[i].width = width;
-    //     threadData[i].height = height;
-    //     threadData[i].image = image;
-
-    //     pthread_create(threads[i], NULL, blurImage, &threadData[i]);
-    //     pthread_join(threads[i], NULL);
-    // }
-
-    lodepng_encode32_file(newFilename, image1D, width, height);
-
-    free(image); // Free pointer
+    free(image); // Free pointers
+    free(newImage);
     return 0;
 }
