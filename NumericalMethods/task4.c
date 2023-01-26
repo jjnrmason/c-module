@@ -32,10 +32,12 @@ Outputting the correct image with Box Blur applied (20 marks)
 3) blurring magic (which will later utilise threading)
 4) output final result
 
-Compile with "cc task4.c lodepng.c"
+Compile with "cc task4.c lodepng.c -lm"
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
 #include <pthread.h>
 #include "lodepng.h"
 
@@ -110,7 +112,14 @@ int main(int argc, char** argv) {
 
     // Convert to 2D array
     counter = 0;
-    imagePixel image2D[height][width];
+    imagePixel ** image2D = malloc(height * sizeof(imagePixel*));
+    imagePixel ** image2DBlur = malloc(height * sizeof(imagePixel*));
+
+    for (int i = 0; i < height; i++) {
+        image2D[i] = malloc(width * sizeof(imagePixel));
+        image2DBlur[i] = malloc(width * sizeof(imagePixel));
+    }
+
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {            
             image2D[row][col] = image1D[counter];
@@ -120,31 +129,244 @@ int main(int argc, char** argv) {
         }
     }
 
-    printf("Print blue\n");
+    // iterate 2d arr
+    //      YYY 
+    //      YXY
+    //      YYY     
+    // get all 8 things around it
+    // add colour together and divide by 8
+    // that gives value for r g b
     for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {            
-            image2D[row][col].r = 0;
-            image2D[row][col].g = 0;
-            image2D[row][col].b = 255;
-            image2D[row][col].a = 255;
+        for (int col = 0; col < width; col++) {         
+            unsigned char topLeftRed = -1;
+            unsigned char topLeftGreen = -1;
+            unsigned char topLeftBlue = -1;
+            unsigned char topLeftOpacity = -1;
 
-            printf("Row: %d, Col: %d, RGBA: %d,%d,%d,%d\n", row, col, image2D[row][col].r, image2D[row][col].g, image2D[row][col].b, image2D[row][col].a);
+            unsigned char topMiddleRed = -1;
+            unsigned char topMiddleGreen = -1;
+            unsigned char topMiddleBlue = -1;
+            unsigned char topMiddleOpacity = -1;
+
+            unsigned char topRightRed = -1;
+            unsigned char topRightGreen = -1;
+            unsigned char topRightBlue = -1;
+            unsigned char topRightOpacity = -1;
+
+            unsigned char middleLeftRed = -1;
+            unsigned char middleLeftGreen = -1;
+            unsigned char middleLeftBlue = -1;
+            unsigned char middleLeftOpacity = -1;
+
+            unsigned char middleRightRed = -1;
+            unsigned char middleRightGreen = -1;
+            unsigned char middleRightBlue = -1;
+            unsigned char middleRightOpacity = -1;
+
+            unsigned char bottomLeftRed = -1;
+            unsigned char bottomLeftGreen = -1;
+            unsigned char bottomLeftBlue = -1;
+            unsigned char bottomLeftOpacity = -1;
+
+            unsigned char bottomMiddleRed = -1;
+            unsigned char bottomMiddleGreen = -1;
+            unsigned char bottomMiddleBlue = -1;
+            unsigned char bottomMiddleOpacity = -1;
+
+            unsigned char bottomRightRed = -1;
+            unsigned char bottomRightGreen = -1;
+            unsigned char bottomRightBlue = -1;
+            unsigned char bottomRightOpacity = -1;
+
+            bool leftAvailable = false, rightAvailable = false, topAvailable = false, bottomAvailable = false;
+            int numberOfSurroundingPixels = 0;
+
+            if (row != 0) {
+                topAvailable = true;
+            }
+
+            if (row != height - 1) {
+                bottomAvailable = true;
+            }
+
+            if (col != 0) {
+                leftAvailable = true;
+            }
+
+            if (col != width - 1) {
+                rightAvailable = true;
+            }
+            
+            // On the top row
+            if (bottomAvailable) {
+                // Bottom left
+                if (leftAvailable) {
+                    bottomLeftRed = image2D[row + 1][col - 1].r;
+                    bottomLeftGreen = image2D[row + 1][col - 1].g;
+                    bottomLeftBlue = image2D[row + 1][col - 1].b;
+                    bottomLeftOpacity = image2D[row + 1][col - 1].a;
+                    numberOfSurroundingPixels++;
+                }
+
+                // Bottom middle
+                bottomMiddleRed = image2D[row + 1][col].r;
+                bottomMiddleGreen = image2D[row + 1][col].g;
+                bottomMiddleBlue = image2D[row + 1][col].b;
+                bottomMiddleOpacity = image2D[row + 1][col].a;
+                numberOfSurroundingPixels++;
+
+                if (col == 0 && row == 0) {
+                        printf("Added bottom\n");
+                } 
+
+                // Bottom right
+                if (rightAvailable) {
+                    bottomRightRed = image2D[row + 1][col + 1].r;
+                    bottomRightGreen = image2D[row + 1][col + 1].g;
+                    bottomRightBlue = image2D[row + 1][col + 1].b;
+                    bottomRightOpacity = image2D[row + 1][col + 1].a;
+                    numberOfSurroundingPixels++;
+
+                    if (col == 0 && row == 0) {
+                        printf("Added bottom right\n");
+                    } 
+                }
+            }
+
+            // Middle left
+            if (leftAvailable) {
+                middleLeftRed = image2D[row][col - 1].r;
+                middleLeftGreen = image2D[row][col - 1].g;
+                middleLeftBlue = image2D[row][col - 1].b;
+                middleLeftOpacity = image2D[row][col - 1].a;
+                numberOfSurroundingPixels++;
+            }
+
+            // Middle right
+            if (rightAvailable) {
+                middleRightRed = image2D[row][col + 1].r;
+                middleRightGreen = image2D[row][col + 1].g;
+                middleRightBlue = image2D[row][col + 1].b;
+                middleRightOpacity = image2D[row][col + 1].a;
+                numberOfSurroundingPixels++;
+
+                if (col == 0 && row == 0) {
+                    printf("Added mid right\n");
+                    printf("GREEN: %d\n", image2D[row][col + 1].g);
+                } 
+                
+            }
+
+            // On the bottom row
+            if (topAvailable) {
+                // Top left
+                if (leftAvailable) {
+                    topLeftRed = image2D[row - 1][col - 1].r;
+                    topLeftGreen = image2D[row - 1][col - 1].g;
+                    topLeftBlue = image2D[row - 1][col - 1].b;
+                    topLeftOpacity = image2D[row - 1][col - 1].a;  
+                    numberOfSurroundingPixels++;
+                }
+
+                // Top middle
+                topMiddleRed = image2D[row - 1][col].r;
+                topMiddleGreen = image2D[row - 1][col].g;
+                topMiddleBlue = image2D[row - 1][col].b;
+                topMiddleOpacity = image2D[row - 1][col].a;
+                numberOfSurroundingPixels++;
+
+                // Top right
+                if (rightAvailable) {
+                    topRightRed = image2D[row - 1][col + 1].r;
+                    topRightGreen = image2D[row - 1][col + 1].g;
+                    topRightBlue = image2D[row - 1][col + 1].b;
+                    topRightOpacity = image2D[row - 1][col + 1].a;
+                    numberOfSurroundingPixels++;
+                }
+            }
+
+            unsigned char surroundingRedPixels[] = {
+                topLeftRed,
+                topMiddleRed,
+                topRightRed,
+                middleLeftRed,
+                middleRightRed,
+                bottomLeftRed,
+                bottomMiddleRed,
+                bottomRightRed
+            };
+
+            unsigned char surroundingGreenPixels[] = {
+                topLeftGreen,
+                topMiddleGreen,
+                topRightGreen,
+                middleLeftGreen,
+                middleRightGreen,
+                bottomLeftGreen,
+                bottomMiddleGreen,
+                bottomRightGreen
+            };
+
+            unsigned char surroundingBluePixels[] = {
+                topLeftBlue,
+                topMiddleBlue,
+                topRightBlue,
+                middleLeftBlue,
+                middleRightBlue,
+                bottomLeftBlue,
+                bottomMiddleBlue,
+                bottomRightBlue
+            };
+
+            unsigned char surroundingOpacityPixels[] = {
+                topLeftOpacity,
+                topMiddleOpacity,
+                topRightOpacity,
+                middleLeftOpacity,
+                middleRightOpacity,
+                bottomLeftOpacity,
+                bottomMiddleOpacity,
+                bottomRightOpacity
+            };
+            
+            int redPixelTotal = 0;
+            int greenPixelTotal = 0;
+            int bluePixelTotal = 0;
+            int opacityPixelTotal = 0;
+
+            // Get total sum
+            for (int i = 0; i < 8; i++) {
+                if (surroundingRedPixels[i] != -1 && surroundingGreenPixels[i] != -1 && surroundingBluePixels[i] != -1 && surroundingOpacityPixels[i] != -1) {
+                    printf("Surrounding green pixel: %d\n", surroundingGreenPixels[i]);
+                    redPixelTotal += surroundingRedPixels[i];
+                    greenPixelTotal += surroundingGreenPixels[i];
+                    bluePixelTotal += surroundingBluePixels[i];
+                    opacityPixelTotal += surroundingOpacityPixels[i];
+                }
+            }
+
+            // Get average
+            float redPixelAverage = redPixelTotal / numberOfSurroundingPixels;
+            float greenPixelAverage = greenPixelTotal / numberOfSurroundingPixels;
+            float bluePixelAverage = bluePixelTotal / numberOfSurroundingPixels;
+            float opacityPixelAverage = opacityPixelTotal / numberOfSurroundingPixels;
+            
+            printf("Number of surrounding pixels, %d\n", numberOfSurroundingPixels);
+            
+
+            image2DBlur[row][col].r = round(redPixelAverage);
+            image2DBlur[row][col].g = round(greenPixelAverage);
+            image2DBlur[row][col].b = round(bluePixelAverage);
+            image2DBlur[row][col].a = round(opacityPixelAverage);
         }
     }
-// iterate 2d arr
-//      YYY 
-//      YXY
-//      YYY     
-// get all 8 things around it
-// add them together and divide by 8
-// that gives value for r g b
-// apart from the top and sides etc
+
     // Convert back to 1D array and then back to flat array to save
-    imagePixel image1DSecondEdition[nPixels];
+    imagePixel* image1DSecondEdition = malloc(nPixels * sizeof(imagePixel));
     counter = 0;
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {            
-            image1DSecondEdition[counter] = image2D[row][col];
+            image1DSecondEdition[counter] = image2DBlur[row][col];
             counter++;
         }
     }
@@ -168,5 +390,8 @@ int main(int argc, char** argv) {
 
     free(image); // Free pointers
     free(newImage);
+    free(image1DSecondEdition);
+    free(image2DBlur);
+    free(image2D);
     return 0;
 }
