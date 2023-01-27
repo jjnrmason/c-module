@@ -1,5 +1,5 @@
 /*
-Compile with "cc task4.c lodepng.c -lm"
+Compile with "cc task4.c lodepng.c -lm -pthread"
 Run with "./a.out Images/testpepe.png Images/result.png 5"
 */
 #include <stdio.h>
@@ -13,9 +13,9 @@ typedef struct {
     int thread;
     int start;
     int end;
+    int chunksize;
     unsigned int width;
     unsigned int height;
-    unsigned char* image;
 } tdata;
 
 typedef struct {
@@ -25,68 +25,19 @@ typedef struct {
     int a;
 } pixel;
 
+pixel ** image2D;
+pixel ** image2DBlur;
+
 void *blurImage(void* targs) {
-    pthread_exit(0);
-}
+    tdata* data = (tdata *)targs;
+    int thread = data->thread;
+    int start = data->start;
+    int end = data->end;
+    int width = data->width;
+    int height = data->height;
+    int chunksize = data->chunksize;
 
-int main(int argc, char** argv) {
-    if (argc != 4) {
-        printf("Program run with the incorrect args.\n");
-        printf("Arg1: Image filename\n");
-        printf("Arg2: New image filename\n");
-        printf("Arg3: Number of threads\n");
-        return 0;
-    }
-
-    char* filename = argv[1];
-    char* newFilename = argv[2];
-    int numberOfThreads = atoi(argv[3]);
-
-    unsigned char* image;
-    unsigned int width, height, error;
-
-    error = lodepng_decode32_file(&image, &width, &height, filename);
-
-    if (error) {
-        printf("Error: %s\n", lodepng_error_text(error));
-        return 0;
-    }
-
-    int nPixels = width * height;
-
-    printf("Width = %d, Height = %d\n", width, height);
-    printf("Area = %d\n", nPixels);
-    
-    // Setup 2D array with malloc
-    pixel ** image2D = malloc(height * sizeof(pixel*));
-    pixel ** image2DBlur = malloc(height * sizeof(pixel*));
-
-    for (int i = 0; i < height; i++) {
-        image2D[i] = malloc(width * sizeof(pixel));
-        image2DBlur[i] = malloc(width * sizeof(pixel));
-    }
-
-    // Convert to 2D array
-    int counter = 0;
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            image2D[row][col].r = image[counter];
-            image2D[row][col].g = image[counter + 1];
-            image2D[row][col].b = image[counter + 2];
-            image2D[row][col].a = image[counter + 3];
-            counter += 4;
-        }
-    }
-
-    /*
-    Implement threading 🤯
-    */
-    tdata threadData[numberOfThreads];
-    pthread_t threads[numberOfThreads];
-    int start = 0, end = 0;
-    int chunksize = (nPixels * 4) / numberOfThreads;
-
-    printf("Chunksize: %d %d\n", chunksize, nPixels); 
+    printf("[%d] Start: %d, End: %d, Width: %d, Height: %d, Chunksize: %d\n", thread, start, end, width, height, chunksize);
 
     /*
     Iterate over the 2D array and find all the values surrounding a pixel.
@@ -153,7 +104,7 @@ int main(int argc, char** argv) {
             if (col != width - 1) {
                 rightAvailable = true;
             }
-            
+
             // On the top row
             if (bottomAvailable) {
                 // Bottom left
@@ -298,6 +249,91 @@ int main(int argc, char** argv) {
             image2DBlur[row][col].b = round(bluePixelAverage);
             image2DBlur[row][col].a = round(opacityPixelAverage);
         }
+    }
+
+    pthread_exit(0);
+}
+
+int main(int argc, char** argv) {
+    if (argc != 4) {
+        printf("Program run with the incorrect args.\n");
+        printf("Arg1: Image filename\n");
+        printf("Arg2: New image filename\n");
+        printf("Arg3: Number of threads\n");
+        return 0;
+    }
+
+    char* filename = argv[1];
+    char* newFilename = argv[2];
+    int numberOfThreads = atoi(argv[3]);
+
+    unsigned char* image;
+    unsigned int width, height, error;
+
+    error = lodepng_decode32_file(&image, &width, &height, filename);
+
+    if (error) {
+        printf("Error: %s\n", lodepng_error_text(error));
+        return 0;
+    }
+
+    int nPixels = width * height;
+
+    printf("Width = %d, Height = %d\n", width, height);
+    printf("Area = %d\n", nPixels);
+    
+    // Setup 2D array with malloc
+    image2D = malloc(height * sizeof(pixel*));
+    image2DBlur = malloc(height * sizeof(pixel*));
+
+    for (int i = 0; i < height; i++) {
+        image2D[i] = malloc(width * sizeof(pixel));
+        image2DBlur[i] = malloc(width * sizeof(pixel));
+    }
+
+    // Convert to 2D array
+    int counter = 0;
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+            image2D[row][col].r = image[counter];
+            image2D[row][col].g = image[counter + 1];
+            image2D[row][col].b = image[counter + 2];
+            image2D[row][col].a = image[counter + 3];
+            counter += 4;
+        }
+    }
+
+    /*
+    Setup and assert threading
+    */
+    tdata threadData[numberOfThreads];
+    pthread_t threads[numberOfThreads];
+    int start = 0, end = 0;
+    int chunksize = nPixels / numberOfThreads;
+
+    printf("Chunksize: %d\n", chunksize); 
+
+    for (int i = 0; i < numberOfThreads; i++) {
+        if (i == 0) {
+            start = 0;
+        } else {
+            start += chunksize;
+        }
+
+        end = start + chunksize - 1;
+
+        if (i == numberOfThreads - 1) {
+            end = nPixels - 1;
+        }
+
+        threadData[i].thread = i + 1;
+        threadData[i].start = start;
+        threadData[i].end = end;
+        threadData[i].width = width;
+        threadData[i].height = height;
+        threadData[i].chunksize = chunksize;
+        pthread_create(&threads[i], NULL, blurImage, &threadData[i]);
+        pthread_join(threads[i], NULL);
     }
 
     // Convert back to flat array to save
