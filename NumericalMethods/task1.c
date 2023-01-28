@@ -1,5 +1,7 @@
 /*
 https://statisticsbyjim.com/regression/linear-regression-equation/
+Compile with "cc task1.c"
+Run with "./a.out"
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +33,7 @@ int main(int argc, char** argv) {
 
     fclose(file);
 
+    // Complete equation after finding sums
     float divisionSum = n * sumxsq - sumx * sumx; 
     float a = (n * sumxy - sumx * sumy) / divisionSum;
     float b = (sumy * sumxsq - sumx * sumxy) / divisionSum;

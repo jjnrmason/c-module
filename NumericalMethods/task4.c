@@ -301,10 +301,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    /*
-    Setup and assert threading
-    */
-    // ----------------------
+    // Setup and assert threading
     int totalVals = height;
     if (numberOfThreads > height) {
         numberOfThreads = height;
@@ -348,8 +345,7 @@ int main(int argc, char** argv) {
         
         pthread_create(&threads[i], &attr, blurImage, &threadData[i]);
         pthread_join(threads[i], NULL);
-    } 
-    // -----------------------
+    }
 
     // Convert back to flat array to save
     unsigned char* newImage = malloc(nPixels * sizeof(int) * 4);
@@ -372,12 +368,12 @@ int main(int argc, char** argv) {
         printf("Error: %s\n", lodepng_error_text(error));
     }
 
+    // Free pointers and malloc
     for (int i = 0; i < height; i++) {
     	free(image2D[i]);
     	free(image2DBlur[i]);
     }
 
-    // Free pointers
     free(image); 
     free(newImage);
     free(image2D);

@@ -1,3 +1,7 @@
+/*
+Compile with "cc task2.c -lm -pthread"
+Run with "./a.out {{number of iterations}} {{number of threads}}"
+*/
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -49,7 +53,7 @@ int main(int argc, char** argv) {
     
     // Workout the start and end values for each thread and create them
     for (int i = 0; i < threadCount; i ++) {
-        // Start at the begining or the next chunk
+        // Start at the beginning or the next chunk
         if (i == 0) {
             start = 0;
         } else {

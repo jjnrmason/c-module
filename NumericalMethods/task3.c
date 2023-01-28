@@ -1,5 +1,7 @@
-// Compile with cc task3.c -pthread and run with ./a.out 3
-
+/*
+Compile with "cc task3.c -pthread"
+Run with "./a.out {{number of threads}}"
+*/
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -20,6 +22,7 @@ char* resultsFilename = "PrimeNumbersResults.txt";
 int totalCount = 0;
 int count = 0;
 
+// Calculate whether a number of prime or not. Returns 0 if the number is a prime number
 int isPrime(int n) {
     int isPrime = 0;
     if (n == 0 || n == 1) {
@@ -36,6 +39,7 @@ int isPrime(int n) {
     return isPrime;
 }
 
+// Worker function for the thread
 void *doWork(void* targs) {
     tdata* data = (tdata *)targs;
     int thread = data->thread;
@@ -45,6 +49,7 @@ void *doWork(void* targs) {
 
     printf("Thread %d started.\n", thread);
 
+    // Foreach item in the splice work out whether it's prime and if it is add to the count
     for (int i = start; i < end; i++) {
         int res = isPrime(testData[i]);
 
@@ -55,6 +60,7 @@ void *doWork(void* targs) {
         }
     }
 
+    // Return the count of prime numbers in the thread back to the worker thread
     pthread_exit(&count);
 }
 
@@ -89,6 +95,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // Using the total count of lines read in the contents
     for (int i = 0; i < lineCount; i++) {
         fscanf(filePtr, "%d", &testData[i]);
     }
@@ -101,7 +108,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // Setup threads and calcuate primes
+    // Setup threads and calculate primes
     int start = 0, end = 0;
     int chunkSize = lineCount / numberOfThreads;
 
@@ -130,6 +137,7 @@ int main(int argc, char** argv) {
 
         pthread_join(threads[i], &returnValue);
 
+        // When the thread is finished get the value returned, cast to an int and add to the total count
         int count = *(int *)returnValue;
         printf("Thread %d found %d prime numbers\n", i + 1, count);
         totalCount += count;
@@ -137,12 +145,14 @@ int main(int argc, char** argv) {
 
     printf("Total count of prime numbers in the file is %d\n", totalCount);
 
+    // Output results to the file. Creating a string with the total amount of numbers found.
     char fileEnd[100] = "Prime numbers found: \0";
     char countStr[10];
     sprintf(countStr, "%d", totalCount);
     strcat(fileEnd, countStr);
     fputs(fileEnd, resultsFilePtr);
 
+    // Free up allocated memory and close file pointer
     free(testData);
     fclose(resultsFilePtr);
 
