@@ -42,7 +42,7 @@ void *blurImage(void* targs) {
     Add those values together and then divide by the amount of pixels to get the average.
     That becomes the value for the current pixel.
     */
-    for (int row = start; row < end; row++) {
+    for (int row = start; row <= end; row++) {
         for (int col = 0; col < width; col++) {         
             unsigned char topLeftRed = -1;
             unsigned char topLeftGreen = -1;
@@ -302,44 +302,32 @@ int main(int argc, char** argv) {
     }
 
     // Setup and assert threading
-    int totalVals = height;
-    if (numberOfThreads > height) {
-        numberOfThreads = height;
-    }
-
-    int sliceList[numberOfThreads];
-    int remainder = totalVals % numberOfThreads;
-    
-    for (int i = 0; i < numberOfThreads; i++) {
-        sliceList[i] = totalVals / numberOfThreads;
-    }
-
-    for (int i = 0; i < remainder; i++) {
-        sliceList[i] = sliceList[i] + 1;
-    }
-
-    int startList[numberOfThreads];
-    int finishList[numberOfThreads];
-
-    for (int i = 0; i < numberOfThreads; i++) {
-        if (i == 0) {
-            startList[i] = 0;
-            finishList[i] = startList[i] + sliceList[i] - 1;
-        } else {
-            startList[i] = finishList[i - 1] + 1;
-            finishList[i] = startList[i] + sliceList[i] - 1;
-        }
-    }
-
+    int start = 0, end = 0;
+    // Because loops start at 0 need to - 1 from the height to workout slices
+    int loopHeight = height - 1;
+    int chunkSize = loopHeight / numberOfThreads;
     tdata threadData[numberOfThreads];
     pthread_t threads[numberOfThreads];
     
     for (int i = 0; i < numberOfThreads; i++) {
-        threadData[i].start = startList[i];
-        threadData[i].end = finishList[i];
+    	if (i == 0) {
+    	    start = 0;
+    	} else {
+    	    start += chunkSize;
+    	}
+    	
+    	end = start + chunkSize - 1;
+    	
+    	if (i == numberOfThreads - 1) {
+    	    end = loopHeight;
+    	}
+        
+        threadData[i].thread = i;
+        threadData[i].start = start;
+        threadData[i].end = end;
         threadData[i].width = width;
         threadData[i].height = height;
-
+        
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         
