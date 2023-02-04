@@ -9,12 +9,9 @@ Run with "./a.out"
 int main(int argc, char** argv) {
     FILE* file;
     char* filename = "LinearRegressionDataFiles/datasetLR1.txt";
-    float x, y, n;
-    float sumx, sumxsq, sumy, sumxy;
-
-    printf("Enter the value of 'n'(Number of points): ");
-    scanf("%e", &n);
-    printf("Calculating the linear regression with the value of 'n' being '%.0f'\n", n);
+    float x, y;
+    float sumx = 0, sumxsq = 0, sumy = 0, sumxy = 0;
+    int coordinateCount = 0;
 
     file = fopen(filename, "r");
 
@@ -29,18 +26,34 @@ int main(int argc, char** argv) {
         sumxsq = sumxsq + (x * x); // Σx2
         sumy = sumy + y; // Σy
         sumxy = sumxy + (x * y); // Σxy
+        coordinateCount++;
     }
 
     fclose(file);
 
-    // Complete equation after finding sums
-    float divisionSum = n * sumxsq - sumx * sumx; 
-    float a = (n * sumxy - sumx * sumy) / divisionSum;
-    float b = (sumy * sumxsq - sumx * sumxy) / divisionSum;
+    printf("Sumx: %f\n", sumx);
+    printf("Sumxsq: %f\n", sumxsq);
+    printf("Sumy: %f\n", sumy);
+    printf("Sumxy: %f\n", sumxy);
+    printf("N coordinates: %d\n", coordinateCount);
 
-    printf("a = %.0f, b = %.0f\n", a, b);
+    // Complete equation after finding sums
+    float divisionSum = coordinateCount * sumxsq - sumx * sumx; 
+    float a = (sumy * sumxsq - sumx * sumxy) / divisionSum;
+    float b = (coordinateCount * sumxy - sumx * sumy) / divisionSum;
+
     // Insert into the equation: y = a + bx
-    printf("y = %.0f + %.0fx\n", a, b);
+    printf("y = %f + %fx\n", a, b);
+
+    float input;
+    printf("Enter a number to represent the value of x: ");
+-   scanf("%e", &input);
+
+    printf("x = %f\n", input);
+    printf("y = %f + (%f * %f)\n", a, b, input);
+
+    float answer = (b * input) + a;
+    printf("y = %f\n", answer);
 
     return 0;
 }
