@@ -1,8 +1,3 @@
-/*
-https://statisticsbyjim.com/regression/linear-regression-equation/
-Compile with "cc task1.c"
-Run with "./a.out"
-*/
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -1,7 +1,3 @@
-/*
-Compile with "mpicc nums.c -o nums"
-Run with "mpiexec ./nums" or mpiexec -n 4 -oversubscribe ./nums"
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
