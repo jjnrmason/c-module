@@ -10,7 +10,7 @@ typedef struct {
     int start;
     int end;
     char *encryptedPasswordWithSalt;
-} threadMetadata;
+} ThreadData;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -33,7 +33,7 @@ void substr(char *dest, char *src, int start, int length) {
  for this kind of program should not include this. i.e. comment out the printfs.
 */
 void *crack(void *threadArgs) {
-    threadMetadata *data = (threadMetadata *)threadArgs;
+    ThreadData *data = (ThreadData *)threadArgs;
     int start = data->start;
     int end = data -> end;
     char *encryptedPasswordWithSalt = data -> encryptedPasswordWithSalt;
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     const int charCount = 26;
     int chunkSize = charCount / numberOfThreads;
 
-    threadMetadata data[numberOfThreads];
+    ThreadData data[numberOfThreads];
     pthread_t threads[numberOfThreads];
 
     for (int i = 0; i < numberOfThreads; i++) {

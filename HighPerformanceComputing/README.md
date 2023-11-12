@@ -25,5 +25,19 @@ cc matrix-multiplication.c -pthread
 
 ### Run Command:
 ```
-./a.out 'input-matrices.txt' 'output-matrices.txt' 2
+./a.out 'input-matrices.txt' 2 'output-matrices.txt'
+```
+
+## Password crack (CUDA)
+
+Written in CUDA. Program can crack an encrypted string in the format 'AA00' (a capital letter, a capital letter, a number between 0-99).
+
+### Compile Command:
+```
+nvcc password-crack.c
+```
+
+### Run Command:
+```
+./a.out 'lhkmgi3153'
 ```
