@@ -41,3 +41,17 @@ nvcc password-crack.c
 ```
 ./a.out 'lhkmgi3153'
 ```
+
+## Box blur (CUDA)
+
+Written in CUDA. Program can crack blur a png image.
+
+### Compile Command:
+```
+nvcc box-blur.cu lodepng.cpp
+```
+
+### Run Command:
+```
+./a.out pepe.png pepe-out.png
+```
