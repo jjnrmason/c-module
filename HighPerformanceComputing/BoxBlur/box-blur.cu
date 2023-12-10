@@ -11,14 +11,37 @@ typedef struct {
 } Pixel;
 
 __device__
+Pixel* getFocusedValues() {
+    Pixel* focusedValues = (Pixel*)malloc(sizeof(Pixel) * 9);
+    
+    for (int i = 0; i < 9; i++) {
+        focusedValues[i].r = -1;
+        focusedValues[i].g = -1;
+        focusedValues[i].b = -1;
+        focusedValues[i].a = -1;
+    }
+
+    return focusedValues;
+}
+
+__device__
 Pixel getAverageOfPixels(Pixel* pixels, int numberOfPixels, int numberOfSurroundingPixels) {
     double totalRedPixels = 0.0, totalGreenPixels = 0.0, totalBluePixels = 0.0, totalOpacityPixels = 0.0;
     
     for (int i = 0; i < numberOfPixels; i++) {
-        totalRedPixels += pixels[i].r;
-        totalGreenPixels += pixels[i].g;
-        totalBluePixels += pixels[i].b;
-        totalOpacityPixels += pixels[i].a;
+        int r = pixels[i].r;
+        int g = pixels[i].g;
+        int b = pixels[i].b;
+        int a = pixels[i].a;
+
+        if (r <= 0 || g <= 0 || b <= 0 || a <= 0) {
+            continue;
+        }
+
+        totalRedPixels += r;
+        totalGreenPixels += g;
+        totalBluePixels += b;
+        totalOpacityPixels += a;
     }
 
     Pixel averageValues;
@@ -26,7 +49,7 @@ Pixel getAverageOfPixels(Pixel* pixels, int numberOfPixels, int numberOfSurround
     averageValues.r = totalRedPixels / numberOfSurroundingPixels;
     averageValues.g = totalGreenPixels / numberOfSurroundingPixels;
     averageValues.b = totalBluePixels / numberOfSurroundingPixels;
-    averageValues.a = 255;
+    averageValues.a = totalOpacityPixels / numberOfSurroundingPixels;
     
     return averageValues;
 }
@@ -42,31 +65,32 @@ Pixel getValuesAtIndex(unsigned char *originalImageValues, int index) {
 }
 
 __global__
-void applyBlur(int width, int height, unsigned char *originalImageValues, unsigned char *blurredImageValues) {
+void applyBlur(int height, int width, unsigned char *originalImageValues, unsigned char *blurredImageValues) {
     int id = blockDim.x * blockIdx.x + threadIdx.x;
 
     // Pixel Coordinates
-    int pixelX = id / width;
-    int pixelY = id % width;
-
-    if (pixelX > width || pixelY > height) {
-        printf("Coordinate can't be outside the bounds of the image.\n");
-        return;
-    }
-
+    int pixelX = threadIdx.x;
+    int pixelY = blockIdx.x;
     int startingPixelIndex = id * 4;
-    if (startingPixelIndex < 0 || startingPixelIndex >= width * height * 4) {
-        printf("Starting pixel can't be outside the bounds of the image.\n");
-    }
 
-    int numberOfSurroundingPixels = 0;
+    int topLeftStartingIndex = startingPixelIndex - width * 4 - (1 * 4); // Go back a row and then go left by one pixel
+    int topMiddleStartingIndex = startingPixelIndex - width * 4; // Go back a row
+    int topRightStartingIndex = startingPixelIndex - width * 4 + (1 * 4); // Go back a row and then go right by one pixel
+
+    int middleLeftStartingIndex = startingPixelIndex - (1 * 4); // Go left by one
+    int middleRightStartingIndex = startingPixelIndex + (1 * 4); // Go right by one
+
+    int bottomLeftStartingIndex = startingPixelIndex + width * 4 - (1 * 4); // Go to next row and then go left by one pixel
+    int bottomMiddleStartingIndex = startingPixelIndex + width * 4; // Go to next row
+    int bottomRightStartingIndex = startingPixelIndex + width * 4 + (1 * 4); // Go to next row and then go right by one pixel
+
     // Store the pixel and surrounding values
-    Pixel* focusedValues = (Pixel*)malloc(sizeof(Pixel) * 9);
+    int numberOfSurroundingPixels = 0;
+    Pixel* focusedValues = getFocusedValues();
     focusedValues[4] = getValuesAtIndex(originalImageValues, startingPixelIndex);
     numberOfSurroundingPixels++;
 
     bool leftAvailable = false, rightAvailable = false, topAvailable = false, bottomAvailable = false;
-    int colArrayIndex = pixelY * 4;
 
     if (pixelY != 0) {
         topAvailable = true;
@@ -88,35 +112,30 @@ void applyBlur(int width, int height, unsigned char *originalImageValues, unsign
     if (bottomAvailable) {
         // Bottom left
         if (leftAvailable) {
-            int bottomLeftIndex = ((pixelX + 1) * width * 4) + (colArrayIndex - (4 * 1)); // Add comment explaining this
-            focusedValues[6] = getValuesAtIndex(originalImageValues, bottomLeftIndex);
+            focusedValues[6] = getValuesAtIndex(originalImageValues, bottomLeftStartingIndex);
             numberOfSurroundingPixels++;
         }
 
         // Bottom middle
-        int bottomMiddleIndex = ((pixelX + 1) * width * 4) + colArrayIndex;
-        focusedValues[7] = getValuesAtIndex(originalImageValues, bottomMiddleIndex);
+        focusedValues[7] = getValuesAtIndex(originalImageValues, bottomMiddleStartingIndex);
         numberOfSurroundingPixels++;
 
         // Bottom right
         if (rightAvailable) {
-            int bottomRightIndex = ((pixelX + 1) * width * 4) + (colArrayIndex + (4 * 1));
-            focusedValues[8] = getValuesAtIndex(originalImageValues, bottomRightIndex);
+            focusedValues[8] = getValuesAtIndex(originalImageValues, bottomRightStartingIndex);
             numberOfSurroundingPixels++;
         }
     }
 
     // Middle left
     if (leftAvailable) {
-        int middleLeftIndex = (pixelX * width * 4) + (colArrayIndex - (4 * 1));
-        focusedValues[3] = getValuesAtIndex(originalImageValues, middleLeftIndex);
+        focusedValues[3] = getValuesAtIndex(originalImageValues, middleLeftStartingIndex);
         numberOfSurroundingPixels++;
     }
 
     // Middle right
     if (rightAvailable) {
-        int middleRightIndex = (pixelX * width * 4) + (colArrayIndex + (4 * 1));
-        focusedValues[5] = getValuesAtIndex(originalImageValues, middleRightIndex);
+        focusedValues[5] = getValuesAtIndex(originalImageValues, middleRightStartingIndex);
         numberOfSurroundingPixels++;                
     }
 
@@ -124,20 +143,17 @@ void applyBlur(int width, int height, unsigned char *originalImageValues, unsign
     if (topAvailable) {
         // Top left
         if (leftAvailable) {
-            int topLeftIndex = ((pixelX - 1) * width * 4) + (colArrayIndex - (4 * 1));
-            focusedValues[0] = getValuesAtIndex(originalImageValues, topLeftIndex);
+            focusedValues[0] = getValuesAtIndex(originalImageValues, topLeftStartingIndex);
             numberOfSurroundingPixels++;
         }
 
         // Top middle
-        int topMiddleIndex = ((pixelX - 1) * width * 4) + colArrayIndex;
-        focusedValues[1] = getValuesAtIndex(originalImageValues, topMiddleIndex);
+        focusedValues[1] = getValuesAtIndex(originalImageValues, topMiddleStartingIndex);
         numberOfSurroundingPixels++;
 
         // Top right
         if (rightAvailable) {
-            int topRightIndex = ((pixelX - 1) * width * 4) + (colArrayIndex + (4 * 1));
-            focusedValues[2] = getValuesAtIndex(originalImageValues, topRightIndex);
+            focusedValues[2] = getValuesAtIndex(originalImageValues, topRightStartingIndex);
             numberOfSurroundingPixels++;
         }
     }
@@ -181,9 +197,9 @@ int main(int argc, char **argv) {
     unsigned char *gpuBlurredImageValues;
     cudaMalloc((void **)&gpuBlurredImageValues, sizeof(unsigned char) * totalCpuImagePixels);
 
-    applyBlur<<<dim3(width, 1, 1), dim3(height, 1, 1)>>>(width, height, gpuImageValues, gpuBlurredImageValues);
-    cudaThreadSynchronize();
-
+    applyBlur<<<height, width>>>(height, width, gpuImageValues, gpuBlurredImageValues);
+    cudaDeviceSynchronize();
+    
     printf("Threads have synchronised and finished.\n");
     
     unsigned char *cpuBlurredImageValues = (unsigned char *)malloc(sizeof(unsigned char) * totalCpuImagePixels);

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
         printf("./a.out {{MatrixFilePath}} {{NumberOfThreads}} {{ResultFilePath}}\n");
         resultsFilePath = "output-matrices.txt";
     } else {
-        resultsFilePath = argv[4];
+        resultsFilePath = argv[3];
     }
 
     char *matrixFilePath = argv[1];
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
                         return 1; // TODO This wrong
                     }
 
-                    fprintf(resultsFile, "%d, %d * %d, %d\n", matrixARows, matrixACols, matrixBRows, matrixBCols);
+                    fprintf(resultsFile, "%d, %d\n", matrixACols, matrixBRows);
 
                     for (int row = 0; row < matrixARows; row++) {
                         for (int col = 0; col < matrixBCols - 1; col++) {
