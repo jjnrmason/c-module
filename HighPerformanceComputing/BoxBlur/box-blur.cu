@@ -34,7 +34,7 @@ Pixel getAverageOfPixels(Pixel* pixels, int numberOfPixels, int numberOfSurround
         int b = pixels[i].b;
         int a = pixels[i].a;
 
-        if (r <= 0 || g <= 0 || b <= 0 || a <= 0) {
+        if (r == -1 || g == -1 || b == -1 || a == -1) {
             continue;
         }
 
@@ -50,7 +50,7 @@ Pixel getAverageOfPixels(Pixel* pixels, int numberOfPixels, int numberOfSurround
     averageValues.g = totalGreenPixels / numberOfSurroundingPixels;
     averageValues.b = totalBluePixels / numberOfSurroundingPixels;
     averageValues.a = totalOpacityPixels / numberOfSurroundingPixels;
-    
+
     return averageValues;
 }
 
